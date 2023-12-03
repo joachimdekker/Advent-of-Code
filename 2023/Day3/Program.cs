@@ -5,47 +5,75 @@ char[][] engine = line.Select(s => s.ToCharArray()).ToArray();
 char[] parts = ['&', '+', '-', '#', '@', '$', '/', '%', '*', '='];
 
 List<char> digits = [];
+List<int> associatedGears = [];
+
+List<(int num, int index)> gears = [];
+
 bool foundPartNumber = false;
 int sum = 0;
 for (int i = 0; i < engine.Length; i++)
 {
     for (int j = 0; j < engine[i].Length; j++)
     {
-        if (engine[i][j] == '*')
+        if (char.IsDigit(engine[i][j]))
         {
-            int[] nums = LookAroundForNums(i, j);
-
-            if(nums.Length == 2)
+            digits.Add(engine[i][j]);
+            List<int> foundParts = LookaroundForParts(i, j);
+            if (foundParts.Count > 0)
             {
-                sum += nums[0] * nums[1];
+                associatedGears.AddRange(foundParts);
+                foundPartNumber = true;
             }
         }
+        else
+        {
+            if (foundPartNumber)
+            {
+                int num = int.Parse(string.Join("", digits));
+                gears.AddRange(associatedGears.Select((g) => (num, g)));
+            }
+
+            foundPartNumber = false;
+            associatedGears.Clear();
+            digits.Clear();
+        }
     }
-/*
+
     if (foundPartNumber)
     {
-        Console.WriteLine($"Found part number: {string.Join("", digits)} (EOL)");
-        sum += int.Parse(string.Join("", digits));
-    }
-    else
-    {
-        if (digits.Count > 0)
-        {
-            Console.WriteLine($"Found no part number for digits: {string.Join("", digits)} (EOL)");
-        }
+        int num = int.Parse(string.Join("", digits));
+        gears.AddRange(associatedGears.Select((g) => (num, g)));
     }
 
     foundPartNumber = false;
-    digits.Clear();*/
-
+    associatedGears.Clear();
+    digits.Clear();
 }
+
+sum = gears.Distinct().GroupBy(g => g.index).Sum(s =>
+{
+    if (s.Count() != 2)
+    {
+        return 0;
+    }
+
+    int product = 1;
+    foreach ((int num, int index) in s)
+    {
+        product *= num;
+    }
+
+    return product;
+});
 
 Console.WriteLine($"Sum: {sum}");
 
-bool LookaroundForParts(int i, int j)
+List<int> LookaroundForParts(int i, int j)
 {
     (int xmin, int xmax) = (Math.Max(0, i - 1), Math.Min(engine.Length - 1, i + 1));
     (int ymin, int ymax) = (Math.Max(0, j - 1), Math.Min(engine[i].Length - 1, j + 1));
+
+    List<int> locations = [];
 
     for (int x = xmin; x <= xmax; x++)
     {
@@ -54,69 +82,12 @@ bool LookaroundForParts(int i, int j)
 
             char[] line = engine[x];
             char char1 = line[y];
-            if (parts.Contains(char1))
+            if (char1 == '*')
             {
-                return true;
+                locations.Add((x * engine.Length) + y);
             }
         }
     }
 
-    return false;
-}
-
-
-int[] LookAroundForNums(int i, int j)
-{
-    (int xmin, int xmax) = (Math.Max(0, i - 1), Math.Min(engine.Length - 1, i + 1));
-    (int ymin, int ymax) = (Math.Max(0, j - 1), Math.Min(engine[i].Length - 1, j + 1));
-
-    List<int> nums = [];
-
-    for (int x = xmin; x <= xmax; x++)
-    {
-        for (int y = ymin; y <= ymax; y++)
-        {
-
-            char[] line = engine[x];
-            char char1 = line[y];
-            if (char.IsDigit(engine[x][y]))
-            {
-                int num = GetNum(x, y);
-                if(!nums.Contains(num))
-                {
-                    nums.Add(GetNum(x, y));
-                }
-            }
-        }
-    }
-
-    return nums.ToArray();
-}
-
-int GetNum(int i, int j)
-{
-    int num = 0;
-    int multiplier = 1;
-
-    int jTemp = j;
-
-    List<char> digits = [engine[i][j]];
-
-    jTemp--;
-
-    while (char.IsDigit(engine[i][j]) && jTemp > 0)
-    {
-        digits.Insert(0, engine[i][jTemp]);
-        jTemp--;
-    }
-
-    jTemp = j;
-
-    while (char.IsDigit(engine[i][j]) && jTemp < engine[i].Length - 1)
-    {
-        digits.Add(engine[i][jTemp]);
-        jTemp++;
-    }
-
-    return num;
+    return locations;
 }
