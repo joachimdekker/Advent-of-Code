@@ -6,7 +6,7 @@ internal class Program
     {
         string[] lines = File.ReadAllLines("input.txt");
 
-        int[] seeds = lines[0].Replace("seeds: ", "").Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(int.Parse).ToArray();
+        long[] seeds = lines[0].Replace("seeds: ", "").Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(long.Parse).ToArray();
         lines = lines[3..];
         Mapping[] seedToSoil = lines.TakeWhile(s => s != "").Select(Mapping.FromString).ToArray();
         lines = lines[(seedToSoil.Length + 2)..];
@@ -28,23 +28,73 @@ internal class Program
 
         Mapping[] humidityToLocation = lines.Select(Mapping.FromString).ToArray();
 
+        Mapping[][] MappingChain = new Mapping[][]
+        {
+            seedToSoil,
+            soilToFertilizer,
+            fertilizerToWater,
+            waterToLight,
+            lightToTemperature,
+            temperatureToHumidity,
+            humidityToLocation
+        };
+
+
+        List<long> locations = [];
+
+        // Translate the seeds to soil
+        foreach (long seed in seeds)
+        {
+            long answer = seed;
+            Console.WriteLine("Seed: " + seed);
+            foreach (Mapping[] mapping in MappingChain)
+            {
+                foreach (Mapping m in mapping)
+                {
+                    if (m.TryMap(answer, out long mapped))
+                    {
+                        Console.WriteLine($"Mapped {answer} to {mapped}");
+                        answer = mapped;
+                        break;
+                    }
+                }
+            }
+
+            Console.WriteLine(answer);
+            locations.Add(answer);
+        }
+
+        Console.WriteLine($"Final Answer: {locations.Min()}");
     }
 }
 
 internal class Mapping
 {
-    public int Destination;
-    public int Source;
-    public int Range;
+    public long Destination;
+    public long Source;
+    public long Range;
 
     public static Mapping FromString(string line)
     {
         string[] strings = line.Split(' ');
         return new()
         {
-            Destination = int.Parse(strings[0]),
-            Source = int.Parse(strings[1]),
-            Range = int.Parse(strings[2])
+            Destination = long.Parse(strings[0]),
+            Source = long.Parse(strings[1]),
+            Range = long.Parse(strings[2])
         };
+    }
+
+    public bool TryMap(long value, out long mapping)
+    {
+        long offset = value - Source;
+        if (offset >= 0 && offset < Range)
+        {
+            mapping = Destination + offset;
+            return true;
+        }
+
+        mapping = value;
+        return false;
     }
 }
