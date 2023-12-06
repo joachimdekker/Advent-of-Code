@@ -1,6 +1,6 @@
 ﻿namespace Day5;
 
-internal class Program
+internal class Part2
 {
     private static void Main(string[] args)
     {
@@ -28,8 +28,8 @@ internal class Program
 
         Mapping[] humidityToLocation = lines.Select(Mapping.FromString).ToArray();
 
-        Mapping[][] MappingChain = new Mapping[][]
-        {
+        Mapping[][] MappingChain =
+        [
             seedToSoil,
             soilToFertilizer,
             fertilizerToWater,
@@ -37,64 +37,44 @@ internal class Program
             lightToTemperature,
             temperatureToHumidity,
             humidityToLocation
-        };
+        ];
 
+        List<(long, long)> seedsNRanges = [];
 
-        List<long> locations = [];
-
-        // Translate the seeds to soil
-        foreach (long seed in seeds)
+        for(int i = 0; i < seeds.Length; i+= 2)
         {
-            long answer = seed;
-            Console.WriteLine("Seed: " + seed);
-            foreach (Mapping[] mapping in MappingChain)
+            seedsNRanges.Add((seeds[i], seeds[i+1]));
+        }
+
+
+        long minLocation = long.MaxValue;
+        // Translate the seeds to soil
+        foreach ((long seed, long range) in seedsNRanges)
+        {
+            Console.WriteLine($"Seed: {seed}, Range: {range}");
+            for(long i = seed; i < seed + range; i++)
             {
-                foreach (Mapping m in mapping)
+                long answer = i;
+                foreach (Mapping[] mapping in MappingChain)
                 {
-                    if (m.TryMap(answer, out long mapped))
+                    foreach (Mapping m in mapping)
                     {
-                        Console.WriteLine($"Mapped {answer} to {mapped}");
-                        answer = mapped;
-                        break;
+                        if (m.TryMap(answer, out long mapped))
+                        {
+                            answer = mapped;
+                            break;
+                        }
                     }
                 }
+
+                if (answer < minLocation)
+                {
+                    minLocation = answer;
+                    Console.WriteLine($"New Min: {minLocation}");
+                }
             }
-
-            Console.WriteLine(answer);
-            locations.Add(answer);
         }
 
-        Console.WriteLine($"Final Answer: {locations.Min()}");
-    }
-}
-
-internal class Mapping
-{
-    public long Destination;
-    public long Source;
-    public long Range;
-
-    public static Mapping FromString(string line)
-    {
-        string[] strings = line.Split(' ');
-        return new()
-        {
-            Destination = long.Parse(strings[0]),
-            Source = long.Parse(strings[1]),
-            Range = long.Parse(strings[2])
-        };
-    }
-
-    public bool TryMap(long value, out long mapping)
-    {
-        long offset = value - Source;
-        if (offset >= 0 && offset < Range)
-        {
-            mapping = Destination + offset;
-            return true;
-        }
-
-        mapping = value;
-        return false;
+        Console.WriteLine($"Final Answer: {minLocation}");
     }
 }
